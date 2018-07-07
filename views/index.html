@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>ANALYSIS OF SVN REPO</title>
+	<style>
+		html,body{margin:0px;padding:0px;}
+		header{
+			height:50px;
+			line-height:50px;
+			background-color: #49e;
+			text-align:center;
+			font-size:20px;
+			color:white;
+		}
+		article{
+			/*height:45px;*/
+			padding:10px;
+			line-height:25px;
+			text-align:center;
+			background-color: #eee;
+			margin:10px 0px;
+		}
+		article h3,article p{margin:0px;}
+		.imp{color:#49e;}
+		footer{
+			position: fixed;
+			bottom:10px;
+			text-align:center;
+			color:#aaa;
+			font-size:12px;
+			width:100%;
+		}
+		a{text-decoration: none;color:inherit;}
+	</style>
+</head>
+<body>
+	<header>
+	Analysis of SVN repo
+	</header>
+	<section>
+		{{each repo value i}}
+		<a href="/list/{{value.id}}">
+		<article id="{{value.id}}">
+			<h3>{{value.name}}</h3>
+			<p>
+				repo : <span class="imp">{{value.repo}}</span> &nbsp;
+				version : <span class="imp">{{value.version}}</span>
+			</p>
+		</article>
+		</a>
+		{{ /each }}
+	</section>
+	<footer>
+		powered by chrunlee
+	</footer>
+</body>
+</html>

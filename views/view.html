@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>{{ repo.name }}</title>
+	<style type="text/css">
+		html,body{margin:0px;padding:0px;}
+		.container{padding:20px 100px;}
+		header{
+			border-bottom:1px solid #ccc;
+			height:50px;
+			line-height:50px;
+			text-align:center;
+		}
+		.info{
+			color:#666;font-size:14px;
+		}
+		.contri>div{min-height:300px;border:1px solid #D1D5DA;border-radius:10px;margin:20px 0px;}
+		.contri .title{
+			height:30px;
+			line-height:30px;
+			font-size:14px;
+			padding:0px 20px;
+			color:#666;
+			border-bottom:1px solid #D1D5DA;
+		}
+		[id^=chart]{min-height:270px;}
+		.commits{margin-left:50px;font-size:12px;}
+		.commits>span{margin:0px 10px;}
+		.c{color:#49e;}
+		.a{color:#35b192;}
+		.d{color:#ff6600;}
+		.m{color:#1c84c6;}
+		#back{position:fixed;display:inline-block;height:40px;width:70px;text-align:center;font-size:14px;color:#666;right:20px;top:20px;background-color:#f2f2f2;border:1px solid #ddd;border-radius:5px;line-height:40px;}
+		#back>a{text-decoration:none;}
+	</style>
+</head>
+<body>
+	<!--
+	1. 多分析图
+	2. 统计有多少贡献者
+	3. 统计总共的贡献数量/天
+	
+	按照每个贡献者统计，每个贡献者的分析图
+
+	-->
+	<span id="back"><a href="/"><- Back</a></span>
+	<input type="hidden" name="id" value="{{repo.id}}" id="id">
+	<div class="container">
+		<header>
+			{{repo.name}}
+			<select name="modetype" id="modetype">
+				<option value="C" selected>Commits</option>
+				<option value="M">Modify</option>
+				<option value="A">Additions</option>
+				<option value="D">Deltions</option>
+			</select>
+		</header>
+		<!-- all -->
+		<section>
+			<p class="info">提交到主干的贡献量</p>
+			<div id="all" style="min-height:400px;">
+				
+			</div>
+		</section>
+		<!-- 贡献者 -->
+		<section class="contri">
+			{{ each authors value i}}
+			<div id="{{value.author}}">
+				<div class="title">
+					{{value.author}} <span class="commits"></span>
+				</div>
+				<div id="chart{{value.author}}">
+					
+				</div>
+			</div>
+			{{/each}}
+		</section>
+	</div>
+</body>
+</html>
+<script type="text/javascript" src="/jquery.1.11.3.min.js"></script>
+<script type="text/javascript" src="/moment.js"></script>
+<script type="text/javascript" src="/echarts.common.min.js"></script>
+<script type="text/javascript">
+	var start ,end;//开始和结束时间
+	function parseData (list,sd,ed){
+		var dateArr = [];//时间数组
+		var valueArr = [];//数据数组
+		var now = moment(sd);
+		var flag = true;
+		while( flag ){
+			var str = now.format('YYYY-MM-DD')
+			dateArr.push(str);
+			valueArr.push(getValue(str,list));
+			if(str == ed){
+				flag = false;
+				break;
+			}
+			now.add(1,'d');
+		}
+		return {
+			date : dateArr,
+			value : valueArr
+		}
+	}
+	function getValue(time,list){
+		var rs = 0;
+		for(var i=0,max=list.length;i<max;i++){
+			var item = list[i];
+			if(item.committime == time){
+				rs = item.count;
+				break;
+			}
+		}
+		return rs;
+	}
+	function init(){
+		var id = $('#id').val()
+		var searchtype = $('#modetype').val();
+		$.ajax({
+			url : '/repo',
+			type : 'POST',
+			data : {
+				id : id,
+				type : searchtype
+			}
+		}).done(function(rs){
+			rs = $.parseJSON(rs);
+			start = rs[0].committime;
+			end = rs[rs.length -1].committime;
+			var obj = parseData(rs,start,end);
+
+			var chart1 = echarts.init(document.getElementById('all'))
+			var options = {
+				backgroundColor:'#F6F8FA',
+				tooltip: {
+			        trigger: 'axis',
+			        position: function (pt) {
+			            return [pt[0], '10%'];
+			        }
+			    },
+			    xAxis: {
+			        type: 'category',
+			        boundaryGap: false,
+			        data: obj.date
+			    },
+			    yAxis: {
+			        type: 'value',
+			        boundaryGap: [0, '100%']
+			    },
+			    series: [
+			        {
+			            name:'commits 数量',
+			            type:'line',
+			            smooth:true,
+			            symbol: 'none',
+			            sampling: 'average',
+			            itemStyle: {
+			                normal: {
+			                    color: 'rgb(124,210,146)'
+			                }
+			            },
+			            areaStyle: {
+			                normal: {
+			                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{
+			                        offset: 0,
+			                        color: 'rgb(135, 225, 157)'
+			                    }, {
+			                        offset: 1,
+			                        color: 'rgb(101, 177, 120)'
+			                    }])
+			                }
+			            },
+			            data: obj.value
+			        }
+			    ]
+			};
+			chart1.setOption(options);
+			showAuthor();
+		})
+	}
+
+
+	function showAuthor(){
+		//贡献者
+		var id = $('#id').val()
+		var searchtype = $('#modetype').val();
+		var $author = $('.contri>div');
+		$author.each(function(){
+			var author = $(this).attr('id');
+			var chart = echarts.init(document.getElementById('chart'+author));
+			//请求数据
+			$.ajax({
+				url : '/author',
+				type : 'POST',
+				data :{
+					id : id,
+					author : author,
+					type : searchtype
+				}
+			}).done(function(rs){
+				var resobj = $.parseJSON(rs);
+				var data = resobj.data,info = resobj.info;
+				console.log(resobj);
+				//处理信息
+				var commits = 0,del =0,add = 0,modify = 0;
+				info.forEach(function(item){
+					commits += item.commits;
+					if(item.modetype == 'A'){
+						add = item.count;
+					}else if(item.modetype == 'M'){
+						modify = item.count;
+					}else if(item.modetype == 'D'){
+						del = item.count;
+					}
+				})
+				$('#'+author).find('.commits').html('<span class="c">'+commits+' commits </span><span class="m">'+modify+' modify</span><span class="a">'+add+' <span>++</span></span><span class="d">'+del+' <span>--</span></span>');
+				var obj = parseData(data,start,end);
+				var options = {
+					backgroundColor:'#F6F8FA',
+					tooltip: {
+				        trigger: 'axis',
+				        position: function (pt) {
+				            return [pt[0], '10%'];
+				        }
+				    },
+				    xAxis: {
+				        type: 'category',
+				        boundaryGap: true,
+				        data: obj.date
+				    },
+				    yAxis: {
+				        type: 'value',
+				        boundaryGap: [0, '100%']
+				    },
+				    series: [
+				        {
+				            name:'commits 数量',
+				            type:'line',
+				            smooth:1,
+				            symbol: 'none',
+				            // sampling: 'average',
+				            itemStyle: {
+				                normal: {
+				                    color: 'rgb(224,155,107)'
+				                }
+				            },
+				            areaStyle: {
+				                normal: {
+				                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{
+				                        offset: 0,
+				                        color: 'rgb(242, 165, 110)'
+				                    }, {
+				                        offset: 1,
+				                        color: 'rgb(199, 138, 95)'
+				                    }])
+				                }
+				            },
+				            data: obj.value
+				        }
+				    ]
+				};
+				chart.setOption(options);
+			});
+		});
+	}
+	$(function(){
+		
+		init();
+		//事件
+		$('#modetype').on('change',function(){
+			console.log('aaa');
+			init();
+		})
+		
+	});
+</script>

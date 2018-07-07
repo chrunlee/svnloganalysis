@@ -1,0 +1,31 @@
+{
+  "name": "svnloganalysis",
+  "version": "1.0.0",
+  "description": "抽取SVN的日志信息，并对日志进行统计，类似github，统计贡献者，提交次数等信息",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chrunlee/svnloganalysis.git"
+  },
+  "keywords": [
+    "svnlog"
+  ],
+  "author": "chrunlee",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/chrunlee/svnloganalysis/issues"
+  },
+  "homepage": "https://github.com/chrunlee/svnloganalysis#readme",
+  "dependencies": {
+    "art-template": "^4.12.2",
+    "async": "^2.6.1",
+    "express": "^4.16.3",
+    "express-art-template": "^1.0.1",
+    "mysql": "^2.15.0",
+    "simple-mysql-query": "^1.0.0",
+    "svnlog": "^1.1.0"
+  }
+}
